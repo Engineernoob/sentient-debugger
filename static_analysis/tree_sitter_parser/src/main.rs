@@ -1,24 +1,17 @@
 use std::{env, fs};
 use anyhow::{Result, Context, bail};
 use tree_sitter::{Parser, Language};
-
-extern "C" { fn tree_sitter_python() -> Language; }
-extern "C" {
-    fn tree_sitter_typescript() -> Language;
-    fn tree_sitter_tsx() -> Language;
-}
-
-extern "C" { fn tree_sitter_rust() -> Language; }
+use tree_sitter_parser::{language_python, language_rust, language_typescript, language_tsx};
 
 fn detect_language(filename: &str) -> Option<Language> {
     if filename.ends_with(".py") {
-        Some(unsafe { tree_sitter_python() })
+        Some(language_python())
     } else if filename.ends_with(".ts") {
-        Some(unsafe { tree_sitter_typescript() })
+        Some(language_typescript())
     } else if filename.ends_with(".tsx") {
-        Some(unsafe { tree_sitter_tsx() })
+        Some(language_tsx())
     } else if filename.ends_with(".rs") {
-        Some(unsafe { tree_sitter_rust() })
+        Some(language_rust())
     } else {
         None
     }

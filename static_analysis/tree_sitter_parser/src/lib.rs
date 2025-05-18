@@ -1,28 +1,27 @@
-use tree_sitter::Language;
+//! Tree-sitter parser bindings for multiple programming languages
+//!
+//! This crate provides safe Rust bindings for various Tree-sitter language grammars.
+//! The actual language implementations are compiled from C code in the build script.
 
-extern "C" {
-    fn tree_sitter_rust() -> Language;
-    fn tree_sitter_python() -> Language;
-    fn tree_sitter_typescript() -> Language;
-    fn tree_sitter_tsx() -> Language;
-}
+// Include the generated bindings (includes both FFI declarations and safe wrappers)
+include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-/// Returns the Tree-sitter language for Rust
-pub fn language_rust() -> Language {
-    unsafe { tree_sitter_rust() }
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-/// Returns the Tree-sitter language for Python
-pub fn language_python() -> Language {
-    unsafe { tree_sitter_python() }
-}
+    #[test]
+    fn test_language_bindings() {
+        // Test that we can call the language functions without panicking
+        let languages = [
+            ("python", language_python()),
+            ("rust", language_rust()),
+            ("typescript", language_typescript()),
+            ("tsx", language_tsx()),
+        ];
 
-/// Returns the Tree-sitter language for TypeScript
-pub fn language_typescript() -> Language {
-    unsafe { tree_sitter_typescript() }
-}
-
-/// Returns the Tree-sitter language for TSX
-pub fn language_tsx() -> Language {
-    unsafe { tree_sitter_tsx() }
+        for (name, lang) in &languages {
+            assert!(!lang.is_null(), "Failed to load {} parser", name);
+        }
+    }
 }
