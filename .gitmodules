@@ -1,0 +1,12 @@
+[submodule "static_analysis/tree_sitter_parser/vendor/tree-sitter-javascript"]
+	path = static_analysis/tree_sitter_parser/vendor/tree-sitter-javascript
+	url = ./static_analysis/tree_sitter_parser/vendor/tree-sitter-javascript
+[submodule "static_analysis/tree_sitter_parser/vendor/tree-sitter-python"]
+	path = static_analysis/tree_sitter_parser/vendor/tree-sitter-python
+	url = ./static_analysis/tree_sitter_parser/vendor/tree-sitter-python
+[submodule "static_analysis/tree_sitter_parser/vendor/tree-sitter-rust"]
+	path = static_analysis/tree_sitter_parser/vendor/tree-sitter-rust
+	url = ./static_analysis/tree_sitter_parser/vendor/tree-sitter-rust
+[submodule "static_analysis/tree_sitter_parser/vendor/tree-sitter-typescript"]
+	path = static_analysis/tree_sitter_parser/vendor/tree-sitter-typescript
+	url = ./static_analysis/tree_sitter_parser/vendor/tree-sitter-typescript
