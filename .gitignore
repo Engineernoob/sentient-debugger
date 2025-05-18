@@ -45,6 +45,9 @@ node_modules/
 
 # Rust
 /target/
+**/target/
+**/*.rs.bk
+Cargo.lock
 
 # Logs
 logs/
@@ -78,3 +81,19 @@ yarn-error.log*
 
 # Submodules
 GIT_SUBMODULES.md
+
+# Tree-sitter generated files
+**/bindings/rust/
+**/bindings/go/
+**/bindings/node/
+**/bindings/python/
+**/bindings/web/
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
