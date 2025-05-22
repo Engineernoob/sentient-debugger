@@ -15,6 +15,45 @@ def setup_logging():
     return logging.getLogger('SentientDebugger')
 
 def start_interactive_mode(ai_runner):
+    try:
+        # Start conversation with welcome message
+        welcome = ai_runner.conversation_model.start_conversation()
+        print(f"\n{welcome['message']}\n")
+        
+        # Get user's name
+        name = input(">>> ").strip()
+        greeting = ai_runner.conversation_model.set_user_name(name)
+        print(f"\n{greeting['message']}\n")
+        
+        while True:
+            try:
+                user_input = input(f"{name} >>> ").strip()
+                
+                # Process through conversation model first
+                conv_response = ai_runner.conversation_model.process_conversation(user_input)
+                
+                if conv_response['response_type'] == 'farewell':
+                    print(f"\n{conv_response['message']}")
+                    break
+                    
+                if conv_response['response_type'] == 'technical':
+                    # Switch to code model for technical requests
+                    response = ai_runner.ask(user_input)
+                    print("\nAI:", response.strip(), "\n")
+                else:
+                    # Use conversation model response
+                    print(f"\n{conv_response['message']}\n")
+                
+            except KeyboardInterrupt:
+                farewell = ai_runner.conversation_model.process_conversation("goodbye")
+                print(f"\n{farewell['message']}")
+                break
+            except Exception as e:
+                print(f"Error: {e}")
+                
+    except KeyboardInterrupt:
+        print("\nSetup interrupted. Goodbye!")
+
     print("\nSentient Debugger Interactive Mode")
     print("Type 'help' for available commands")
     print("Type 'exit' to quit\n")

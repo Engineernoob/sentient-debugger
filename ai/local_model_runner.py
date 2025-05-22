@@ -5,7 +5,7 @@ import threading
 import ast
 import json
 import datetime
-
+# Import moved to __init__ where it's actually used
 
 class LocalModelRunner:
     def __init__(self, model_name="codellama-7b-instruct.Q2_K.gguf", max_tokens=512):
@@ -34,6 +34,9 @@ class LocalModelRunner:
                 }
             }
             self.learning_history = []
+            # Initialize conversation model
+            from .conversation_model import ConversationModel
+            self.conversation_model = ConversationModel()
         except Exception as e:
             print(f"[ERROR] Failed to load model: {e}")
             raise

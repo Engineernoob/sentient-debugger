@@ -1,6 +1,6 @@
 from typing import Dict
 import datetime
-# Remove unused json import
+
 
 class ConversationModel:
     def __init__(self):
@@ -12,15 +12,42 @@ class ConversationModel:
                 'frameworks': [],
                 'coding_style': {},
                 'tech_stack': []
-            }
+            },
+            'user_name': None,
+            'session_start': datetime.datetime.now()
         }
         
+    def start_conversation(self) -> Dict:
+        """Initialize conversation with welcome message"""
+        return {
+            'response_type': 'welcome',
+            'message': "Hello! I'm your AI programming assistant. I'm here to help you with coding, debugging, and any other development tasks. May I know your name?"
+        }
+    
+    def set_user_name(self, name: str) -> Dict:
+        """Handle user name response"""
+        self.context['user_name'] = name
+        return {
+            'response_type': 'greeting',
+            'message': (
+                f"It's great to meet you, {name}! 😊\n\n"
+                "I'm here to help you with your programming journey. I can:\n"
+                "• Assist with coding and debugging\n"
+                "• Suggest improvements and optimizations\n"
+                "• Help with project planning and architecture\n"
+                "• Answer programming questions\n"
+                "• Monitor your code for potential issues\n\n"
+                "What would you like to work on today?"
+            )
+        }
+    
     def process_conversation(self, user_input: str) -> Dict:
         """Process conversational input and determine intent"""
         # Track conversation
         self.context['conversation_history'].append({
             'timestamp': datetime.datetime.now().isoformat(),
-            'user': user_input
+            'user': user_input,
+            'user_name': self.context['user_name']
         })
         
         # Analyze intent
@@ -30,18 +57,50 @@ class ConversationModel:
             return self._handle_task_switch(intent)
         elif intent['type'] == 'technical_request':
             return self._prepare_technical_response(intent)
+        elif intent['type'] == 'greeting':
+            return self._handle_greeting()
+        elif intent['type'] == 'farewell':
+            return self._handle_farewell()
         
         return self._generate_conversation_response(intent)
-    
+
     def _analyze_intent(self, text: str) -> Dict:
-        """Analyze user input for intent and context"""
-        # Basic intent analysis
-        if any(keyword in text.lower() for keyword in ['fix', 'bug', 'error']):
-            return {'type': 'technical_request', 'category': 'debugging'}
-        elif any(keyword in text.lower() for keyword in ['frontend', 'backend', 'database']):
-            return {'type': 'task_switch', 'area': text.lower()}
+        """Enhanced intent analysis"""
+        text_lower = text.lower()
         
+        # Greeting patterns
+        if any(word in text_lower for word in ['hello', 'hi', 'hey', 'greetings']):
+            return {'type': 'greeting'}
+            
+        # Farewell patterns
+        if any(word in text_lower for word in ['bye', 'goodbye', 'exit', 'quit']):
+            return {'type': 'farewell'}
+            
+        # Technical patterns
+        if any(word in text_lower for word in ['code', 'bug', 'error', 'fix', 'debug']):
+            return {'type': 'technical_request', 'category': 'debugging'}
+            
+        # Task switching
+        if any(word in text_lower for word in ['frontend', 'backend', 'database']):
+            return {'type': 'task_switch', 'area': text_lower}
+            
         return {'type': 'conversation', 'context': 'general'}
+
+    def _handle_greeting(self) -> Dict:
+        """Handle user greetings"""
+        name = self.context['user_name'] or "there"
+        return {
+            'response_type': 'conversation',
+            'message': f"Hello again, {name}! How can I help you today?"
+        }
+
+    def _handle_farewell(self) -> Dict:
+        """Handle user farewells"""
+        name = self.context['user_name'] or "there"
+        return {
+            'response_type': 'farewell',
+            'message': f"Goodbye, {name}! It was great helping you. Feel free to come back anytime you need assistance!"
+        }
     
     def _handle_task_switch(self, intent: Dict) -> Dict:
         """Handle switching between different development tasks"""
@@ -84,9 +143,14 @@ class ConversationModel:
             'context': self.context['current_task']
         }
     
-    def _get_contextual_response(self) -> str:
+    def _get_contextual_response(self, intent: Dict) -> str:
         """Get context-aware response"""
-        if not self.context['current_task']:
-            return "What would you like to work on? I can help with frontend, backend, or any other aspect of your project."
+        name = self.context['user_name'] or "there"
         
-        return f"I'm here to help with your {self.context['current_task']} development. What specific aspect would you like to discuss?"
+        if intent.get('type') == 'help_request':
+            return f"Of course, {name}! I can help you with coding, debugging, or any other development tasks. What specific area would you like help with?"
+            
+        if not self.context['current_task']:
+            return f"What would you like to work on, {name}? I can help with frontend, backend, or any other aspect of your project."
+        
+        return f"I'm here to help with your {self.context['current_task']} development, {name}. What specific aspect would you like to discuss?"
