@@ -6,11 +6,12 @@ import logging
 from datetime import datetime
 
 class CodeChangeHandler(FileSystemEventHandler):
-    def __init__(self):
+    def __init__(self, ai_runner=None):
         self.supported_extensions = ('.py', '.ts', '.rs', '.tsx', '.jsx', '.js')
         self.last_modified = {}
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger('CodeChangeHandler')
+        self.ai_runner = ai_runner
 
     def on_modified(self, event):
         if event.is_directory:
@@ -32,7 +33,27 @@ class CodeChangeHandler(FileSystemEventHandler):
         self.logger.info(f"[EVENT] File modified: {file_path}")
         
         try:
-            analyze_file(file_path)
+            # First run static analysis
+            analysis_result = analyze_file(file_path)
+            
+            # If AI runner is available, get AI suggestions
+            if self.ai_runner:
+                with open(file_path, 'r') as f:
+                    code_content = f.read()
+                
+                # Ask user for permission to analyze
+                print(f"\n[AI] Would you like me to analyze the changes in {os.path.basename(file_path)}? (y/n)")
+                response = input().lower().strip()
+                
+                if response == 'y':
+                    suggestions = self.ai_runner.ask(
+                        f"Please analyze this code and provide suggestions for improvements:\n{code_content}",
+                        code_context={'filename': file_path, 'code': code_content}
+                    )
+                    print("\n[AI] Analysis and Suggestions:")
+                    print(suggestions)
+                    print("\nType 'feedback yes/no [comments]' to provide feedback on these suggestions.")
+                
         except Exception as e:
             self.logger.error(f"[ERROR] Failed to analyze {file_path}: {e}")
 

@@ -25,7 +25,13 @@ class LocalModelRunner:
             self.user_patterns = {
                 'coding_style': {},
                 'common_patterns': {},
-                'preferred_libraries': set()
+                'preferred_libraries': set(),
+                'feedback_history': [],  # Track user feedback
+                'interaction_metrics': {
+                    'suggestions_accepted': 0,
+                    'suggestions_rejected': 0,
+                    'common_issues': {}
+                }
             }
             self.learning_history = []
         except Exception as e:
@@ -131,6 +137,11 @@ class LocalModelRunner:
         with self.lock:
             try:
                 context = self.format_conversation_context()
+                # Add feedback-aware context
+                context += "\nFeedback metrics:\n"
+                context += f"Acceptance rate: {self._calculate_acceptance_rate()}%\n"
+                context += "Recent feedback: " + json.dumps(self.user_patterns['feedback_history'][-3:]) + "\n"
+                
                 full_prompt = f"{context}\nCurrent question: {prompt}"
                 
                 result = self.llm(
@@ -156,6 +167,64 @@ class LocalModelRunner:
         """Clear conversation history but retain learned patterns"""
         self.conversation_history = []
         self.code_context = {}
+
+    def provide_feedback(self, suggestion_id, was_helpful, comments=None):
+        """Track user feedback on suggestions"""
+        feedback = {
+            'timestamp': datetime.datetime.now().isoformat(),
+            'suggestion_id': suggestion_id,
+            'was_helpful': was_helpful,
+            'comments': comments
+        }
+        self.user_patterns['feedback_history'].append(feedback)
+        
+        if was_helpful:
+            self.user_patterns['interaction_metrics']['suggestions_accepted'] += 1
+        else:
+            self.user_patterns['interaction_metrics']['suggestions_rejected'] += 1
+            
+        self._update_learning_history('feedback_received', feedback)
+
+    def ask(self, prompt, system_prompt="You are an expert programming assistant that learns and adapts to the user's coding style.", code_context=None):
+        if code_context:
+            self.add_code_context(code_context['filename'], code_context['code'])
+
+        with self.lock:
+            try:
+                context = self.format_conversation_context()
+                full_prompt = f"{context}\nCurrent question: {prompt}"
+                
+                result = self.llm(
+                    f"{system_prompt}\n\n{full_prompt}",
+                    max_tokens=512,
+                    temperature=0.7,
+                    echo=True
+                )
+                
+                response = result["choices"][0]["text"].strip()
+                
+                self.conversation_history.append({
+                    'question': prompt,
+                    'answer': response,
+                    'timestamp': datetime.datetime.now().isoformat()
+                })
+                
+                return response
+            except Exception as e:
+                return f"[ERROR] Failed to run inference: {e}"
+
+    def clear_history(self):
+        """Clear conversation history but retain learned patterns"""
+        self.conversation_history = []
+        self.code_context = {}
+
+    def _calculate_acceptance_rate(self):
+        """Calculate the acceptance rate of suggestions"""
+        total = (self.user_patterns['interaction_metrics']['suggestions_accepted'] + 
+                self.user_patterns['interaction_metrics']['suggestions_rejected'])
+        if total == 0:
+            return 100
+        return round((self.user_patterns['interaction_metrics']['suggestions_accepted'] / total) * 100, 2)
 
 # Interactive CLI
 if __name__ == "__main__":

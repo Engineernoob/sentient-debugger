@@ -23,13 +23,25 @@ def start_interactive_mode(ai_runner):
         try:
             user_input = input(">>> ").strip()
             
-            if user_input.lower() == 'exit':
+            if user_input.lower().startswith('feedback'):
+                _, feedback = user_input.split(' ', 1)
+                helpful, *comments = feedback.split(' ', 1)
+                ai_runner.provide_feedback(
+                    suggestion_id=len(ai_runner.conversation_history),
+                    was_helpful=helpful.lower() == 'yes',
+                    comments=comments[0] if comments else None
+                )
+                print("Thank you for your feedback!")
+                continue
+            elif user_input.lower() == 'exit':
                 break
             elif user_input.lower() == 'help':
                 print("\nAvailable commands:")
                 print("  help          - Show this help message")
                 print("  clear         - Clear conversation history")
-                print("  stats         - Show learning statistics")
+                print("  feedback      - Provide feedback on last suggestion")
+                print("  stats        - Show learning statistics and feedback metrics")
+                print("  adapt        - Show how the AI has adapted to your style")
                 print("  suggest       - Get code suggestions for current file")
                 print("  explain       - Explain the current code")
                 print("  test          - Generate test cases")
@@ -45,6 +57,7 @@ def start_interactive_mode(ai_runner):
                 print("  security      - Show code security metrics")
                 print("  performance   - Show code performance metrics")
                 print("  bugs          - Show code bug metrics")
+                print()
                 continue
             
             response = ai_runner.ask(user_input)

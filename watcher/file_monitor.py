@@ -7,10 +7,10 @@ from watchdog.observers.polling import PollingObserver
 from watcher.event_handler import CodeChangeHandler
 
 class FileMonitor:
-    def __init__(self, path_to_watch: str, polling_fallback: bool = True):
+    def __init__(self, path_to_watch: str, polling_fallback: bool = True, ai_runner=None):
         self.path = os.path.abspath(path_to_watch)
         self.polling_fallback = polling_fallback
-        self.event_handler = CodeChangeHandler()
+        self.event_handler = CodeChangeHandler(ai_runner=ai_runner)
         
         # Setup logging
         logging.basicConfig(
