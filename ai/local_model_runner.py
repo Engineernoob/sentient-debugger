@@ -189,9 +189,25 @@ class LocalModelRunner:
         if code_context:
             self.add_code_context(code_context['filename'], code_context['code'])
 
+        # First, process through conversation model
+        conv_response = self.conversation_model.process_conversation(prompt)
+        
+        if conv_response['response_type'] == 'conversation':
+            # Handle pure conversation
+            return conv_response['message']
+        elif conv_response['response_type'] == 'task_switch':
+            # Handle task switching with suggestions
+            response = conv_response['message']
+            if 'suggestions' in conv_response:
+                response += "\nSuggested options:\n- " + "\n- ".join(conv_response['suggestions'])
+            return response
+        
+        # For technical requests, use the main model
         with self.lock:
             try:
                 context = self.format_conversation_context()
+                # Add conversation context
+                context += "\nCurrent task: " + str(self.conversation_model.context['current_task'])
                 full_prompt = f"{context}\nCurrent question: {prompt}"
                 
                 result = self.llm(
@@ -206,7 +222,8 @@ class LocalModelRunner:
                 self.conversation_history.append({
                     'question': prompt,
                     'answer': response,
-                    'timestamp': datetime.datetime.now().isoformat()
+                    'timestamp': datetime.datetime.now().isoformat(),
+                    'task_context': self.conversation_model.context['current_task']
                 })
                 
                 return response
