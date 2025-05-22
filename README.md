@@ -1,28 +1,42 @@
 # 🧠 Sentient Debugger + Adaptive Test Architect
 
-An offline, self-learning AI coding assistant that observes your workflow, understands your habits, and intelligently adapts — offering contextual code suggestions, dynamic test generation, and architectural insights as you code. It’s like pairing with a senior engineer who learns *your* style over time.
+An intelligent, offline AI coding assistant that learns and adapts to your coding style. It combines real-time code analysis with natural conversation to provide a uniquely personalized development experience - like having a senior developer who understands exactly how you work.
 
-## 🚀 Why This Project Stands Out
+## 🌟 Key Features
 
-- **Self-Learning**: Unlike Copilot, this tool fine-tunes a local model on your own codebase and style.
-- **Offline + Private**: No cloud APIs — perfect for proprietary, secure, or air-gapped environments.
-- **Test-Aware**: It dynamically writes and updates unit tests as your code evolves.
-- **Cross-Language**: Built with Tree-sitter and Rust to support static analysis for many languages.
+- **Conversational AI**: Natural dialogue interface that understands context and learns from interactions
+- **Self-Learning**: Adapts to your coding style and preferences over time
+- **Offline & Private**: Runs completely locally - perfect for secure environments
+- **Real-Time Monitoring**: Proactively identifies issues and suggests improvements
+- **Multi-Model Architecture**: Combines conversational and technical models for optimal assistance
 
----
+## 💡 What Makes It Special
 
-## 🛠️ Features
+- **Natural Interaction**: Chat naturally about your code, just like talking to a colleague
+- **Context Awareness**: Understands project context and maintains conversation history
+- **Proactive Assistance**: Identifies potential issues before they become problems
+- **Personalized Learning**: Adapts suggestions based on your feedback and preferences
+- **Privacy First**: All processing happens locally - your code never leaves your machine
 
-- 🧠 **Local LLM Adapter** — Runs with `LLaMA.cpp`, `ONNX`, or other portable models for code comprehension and suggestion.
-- 🪵 **Real-Time File Watcher** — Monitors your code directory and triggers analysis on save.
-- 🔍 **Static Analysis Layer** — Parses your syntax tree using Rust and Tree-sitter.
-- 🧬 **Style Embedding Engine** — Learns your function structure, naming patterns, and architecture choices.
-- 🧪 **Adaptive Test Writer** — Writes new unit tests and updates old ones as logic changes.
-- 🖥️ **(Optional) Tauri UI** — Clean, cross-platform Electron alternative for running and visualizing insights.
+## 🛠️ Technical Features
 
----
+- 🗣️ **Dual Model System**
+  - Conversational model for natural interaction
+  - Technical model for code analysis and suggestions
+  
+- 🔍 **Code Analysis**
+  - Real-time syntax checking
+  - Code quality metrics
+  - Security vulnerability scanning
+  - Performance optimization suggestions
+  
+- 📊 **Metrics & Insights**
+  - Code complexity analysis
+  - Maintainability scoring
+  - Bug pattern detection
+  - Style consistency checking
 
-## 🧱 Architecture Overview
+## 🏗️ Architecture
 
 📦 sentient-debugger
 ├── ai/
@@ -47,10 +61,9 @@ An offline, self-learning AI coding assistant that observes your workflow, under
 ### ✅ Prerequisites
 
 - Python 3.10+
-- Rust + Cargo
-- macOS (or any Unix-like system)
-- (Optional) [LLaMA.cpp](https://github.com/ggerganov/llama.cpp) or ONNX model
-- (Optional) [Tauri](https://tauri.app/) if using GUI
+- Local LLM model (default: CodeLlama 7B)
+- Windows/Linux/MacOS
+- Rust (for static analysis)
 
 ### 📥 Installation
 
@@ -110,6 +123,15 @@ Ideal for secure coding environments.
  Git diff learning to track developer evolution.
 
  Collaborative mode for team behavior synthesis.
+
+ ## 💬 Interactive Commands
+- help - Show available commands
+- suggest - Get code suggestions
+- explain - Explain current code
+- metrics - Show code quality metrics
+- optimize - Get optimization suggestions
+- security - Run security analysis
+- And many more...
 
 🤝 Contributing
 Pull requests are welcome! If you’d like to plug in new models or add language support, check out the ai/ and static_analysis/ folders.
