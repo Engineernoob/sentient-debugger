@@ -4,6 +4,8 @@ from llama_cpp import Llama
 import threading
 import ast
 import json
+import datetime
+
 
 class LocalModelRunner:
     def __init__(self, model_name="codellama-7b-instruct.Q2_K.gguf", max_tokens=512):
@@ -15,54 +17,91 @@ class LocalModelRunner:
                 n_ctx=4096,
                 n_threads=8,
                 n_gpu_layers=33,
-                verbose=True  # Set to True temporarily to see download progress
+                verbose=True
             )
             self.lock = threading.Lock()
             self.conversation_history = []
             self.code_context = {}
+            self.user_patterns = {
+                'coding_style': {},
+                'common_patterns': {},
+                'preferred_libraries': set()
+            }
+            self.learning_history = []
         except Exception as e:
             print(f"[ERROR] Failed to load model: {e}")
             raise
 
     def parse_code_context(self, code_str):
-        """Parse Python code and extract relevant AST information"""
+        """Parse Python code and extract relevant AST information and coding patterns"""
         try:
             tree = ast.parse(code_str)
             context = {
                 'functions': [],
                 'classes': [],
-                'imports': []
+                'imports': [],
+                'patterns': {
+                    'naming_style': {},
+                    'indentation': None,
+                    'docstring_style': None
+                }
             }
             
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef):
                     context['functions'].append({
                         'name': node.name,
-                        'lineno': node.lineno
+                        'lineno': node.lineno,
+                        'args': [arg.arg for arg in node.args.args],
+                        'docstring': ast.get_docstring(node)
                     })
+                    # Learn naming patterns
+                    self._learn_naming_pattern(node.name, 'function')
                 elif isinstance(node, ast.ClassDef):
                     context['classes'].append({
                         'name': node.name,
-                        'lineno': node.lineno
+                        'lineno': node.lineno,
+                        'methods': [m.name for m in node.body if isinstance(m, ast.FunctionDef)]
                     })
+                    self._learn_naming_pattern(node.name, 'class')
                 elif isinstance(node, ast.Import):
                     for name in node.names:
                         context['imports'].append(name.name)
+                        self.user_patterns['preferred_libraries'].add(name.name)
                 elif isinstance(node, ast.ImportFrom):
-                    context['imports'].append(f"{node.module}.{node.names[0].name}")
+                    module_import = f"{node.module}.{node.names[0].name}"
+                    context['imports'].append(module_import)
+                    self.user_patterns['preferred_libraries'].add(node.module)
             
             return context
         except Exception as e:
             return {'error': str(e)}
 
+    def _learn_naming_pattern(self, name, type_):
+        """Learn user's naming conventions"""
+        if name.islower():
+            style = 'snake_case'
+        elif name[0].isupper():
+            style = 'PascalCase'
+        else:
+            style = 'camelCase'
+        
+        if type_ not in self.user_patterns['coding_style']:
+            self.user_patterns['coding_style'][type_] = {}
+        
+        if style not in self.user_patterns['coding_style'][type_]:
+            self.user_patterns['coding_style'][type_][style] = 0
+        self.user_patterns['coding_style'][type_][style] += 1
+
     def add_code_context(self, filename, code):
         """Add or update code context for a file"""
         self.code_context[filename] = self.parse_code_context(code)
+        self._update_learning_history('code_analysis', filename)
 
     def format_conversation_context(self):
         """Format conversation and code context for the model"""
         context = "Previous conversation:\n"
-        for qa in self.conversation_history[-3:]:  # Keep last 3 exchanges for context
+        for qa in self.conversation_history[-3:]:
             context += f"User: {qa['question']}\nAssistant: {qa['answer']}\n\n"
         
         if self.code_context:
@@ -71,15 +110,26 @@ class LocalModelRunner:
                 context += f"\nFile: {filename}\n"
                 context += json.dumps(ctx, indent=2) + "\n"
         
+        # Add learned patterns
+        context += "\nLearned user preferences:\n"
+        context += json.dumps(self.user_patterns, indent=2) + "\n"
+        
         return context
 
-    def ask(self, prompt, system_prompt="You are an expert programming assistant. You help with code generation, explanation, and debugging.", code_context=None):
+    def _update_learning_history(self, action_type, details):
+        """Track learning events"""
+        self.learning_history.append({
+            'timestamp': datetime.datetime.now().isoformat(),
+            'type': action_type,
+            'details': details
+        })
+
+    def ask(self, prompt, system_prompt="You are an expert programming assistant that learns and adapts to the user's coding style.", code_context=None):
         if code_context:
             self.add_code_context(code_context['filename'], code_context['code'])
 
         with self.lock:
             try:
-                # Combine conversation history, code context, and current prompt
                 context = self.format_conversation_context()
                 full_prompt = f"{context}\nCurrent question: {prompt}"
                 
@@ -92,10 +142,10 @@ class LocalModelRunner:
                 
                 response = result["choices"][0]["text"].strip()
                 
-                # Store the Q&A pair in conversation history
                 self.conversation_history.append({
                     'question': prompt,
-                    'answer': response
+                    'answer': response,
+                    'timestamp': datetime.datetime.now().isoformat()
                 })
                 
                 return response
@@ -103,28 +153,63 @@ class LocalModelRunner:
                 return f"[ERROR] Failed to run inference: {e}"
 
     def clear_history(self):
-        """Clear conversation history"""
+        """Clear conversation history but retain learned patterns"""
         self.conversation_history = []
         self.code_context = {}
 
-# Example usage
+# Interactive CLI
 if __name__ == "__main__":
     runner = LocalModelRunner()
+    print("Sentient Debugger AI Assistant")
+    print("This AI learns from your coding style and adapts to your preferences.")
+    print("\nCommands:")
+    print("  exit    - Exit the program")
+    print("  clear   - Clear conversation history")
+    print("  stats   - Show learned patterns and statistics")
+    print("  CODE:   - Set code context (format: CODE:filename.py\\ncode)")
+    print("\nWhat can I help you with?\n")
     
-    # Example with code context
-    code_context = {
-        'filename': 'example.py',
-        'code': '''
-def calculate_sum(a, b):
-    return a + b
-        '''
-    }
-    
-    # First question
-    response = runner.ask("How can I modify this function to handle multiple numbers?", 
-                         code_context=code_context)
-    print("\nAI Response 1:\n", response)
-    
-    # Follow-up question (will include previous context)
-    response = runner.ask("Can you add input validation to the function?")
-    print("\nAI Response 2:\n", response)
+    while True:
+        try:
+            user_input = input("> ").strip()
+            
+            if user_input.lower() == 'exit':
+                break
+            elif user_input.lower() == 'clear':
+                runner.clear_history()
+                print("Conversation history cleared. (Learned patterns retained)")
+                continue
+            elif user_input.lower() == 'stats':
+                print("\nLearned Patterns:")
+                print(json.dumps(runner.user_patterns, indent=2))
+                print("\nLearning History:")
+                print(json.dumps(runner.learning_history[-5:], indent=2))  # Show last 5 events
+                continue
+            
+            if user_input.startswith("CODE:"):
+                try:
+                    _, rest = user_input.split("CODE:", 1)
+                    filename, code = rest.split("\n", 1)
+                    filename = filename.strip()
+                    
+                    code_context = {
+                        'filename': filename,
+                        'code': code
+                    }
+                    runner.add_code_context(filename, code)
+                    print(f"\nCode context set for file: {filename}")
+                    print("Learned new patterns from your code.")
+                    continue
+                except Exception as e:
+                    print(f"Error parsing code context: {e}")
+                    print("Please use the format: CODE:filename.py\\nYour code here")
+                    continue
+            
+            response = runner.ask(user_input)
+            print("\nAI Response:\n", response, "\n")
+            
+        except KeyboardInterrupt:
+            print("\nExiting...")
+            break
+        except Exception as e:
+            print(f"Error: {e}")
