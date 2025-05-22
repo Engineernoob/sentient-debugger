@@ -50,21 +50,15 @@ def main():
     logger = setup_logging()
     
     parser = argparse.ArgumentParser(description="Sentient Debugger - An AI-powered coding assistant")
-    parser.add_argument("--watch", required=True, help="Path to the code directory")
+    parser.add_argument("--watch", required=False, help="Path to the code directory to monitor")
     parser.add_argument("--model", default="codellama-7b-instruct.Q2_K.gguf", 
                        help="Name of the model to use")
     parser.add_argument("--no-gpu", action="store_true", 
                        help="Disable GPU acceleration")
-    parser.add_argument("--no-interactive", action="store_true",
-                       help="Disable interactive mode")
+    parser.add_argument("--watch-only", action="store_true",
+                       help="Run in file monitoring mode only (no interactive mode)")
     
     args = parser.parse_args()
-
-    # Validate watch path
-    watch_path = os.path.abspath(args.watch)
-    if not os.path.exists(watch_path):
-        logger.error(f"Watch path does not exist: {watch_path}")
-        return
 
     # Initialize AI model
     try:
@@ -78,27 +72,35 @@ def main():
         logger.error(f"Failed to initialize AI assistant: {e}")
         return
 
-    # Start monitoring in a separate thread
-    monitor_thread = threading.Thread(
-        target=start_monitoring,
-        args=(watch_path,),
-        daemon=True
-    )
-    monitor_thread.start()
-    logger.info(f"File monitoring started on: {watch_path}")
+    # Start monitoring if watch path is provided
+    monitor_thread = None
+    if args.watch:
+        watch_path = os.path.abspath(args.watch)
+        if not os.path.exists(watch_path):
+            logger.error(f"Watch path does not exist: {watch_path}")
+            return
+            
+        monitor_thread = threading.Thread(
+            target=start_monitoring,
+            args=(watch_path,),
+            daemon=True
+        )
+        monitor_thread.start()
+        logger.info(f"File monitoring started on: {watch_path}")
 
-    # Start interactive mode unless disabled
-    if not args.no_interactive:
-        try:
-            start_interactive_mode(ai_runner)
-        except Exception as e:
-            logger.error(f"Interactive mode error: {e}")
-    else:
-        # Keep main thread alive
+    # Run in watch-only mode if specified
+    if args.watch_only and monitor_thread:
         try:
             monitor_thread.join()
         except KeyboardInterrupt:
             logger.info("Shutting down Sentient Debugger...")
+        return
+
+    # Start interactive mode by default
+    try:
+        start_interactive_mode(ai_runner)
+    except Exception as e:
+        logger.error(f"Interactive mode error: {e}")
 
 if __name__ == "__main__":
     main()
