@@ -3,6 +3,7 @@
 import argparse
 import os
 import logging
+import threading
 from watcher.file_monitor import start_monitoring
 from ai.local_model_runner import LocalModelRunner
 
@@ -13,6 +14,38 @@ def setup_logging():
     )
     return logging.getLogger('SentientDebugger')
 
+def start_interactive_mode(ai_runner):
+    print("\nSentient Debugger Interactive Mode")
+    print("Type 'help' for available commands")
+    print("Type 'exit' to quit\n")
+
+    while True:
+        try:
+            user_input = input(">>> ").strip()
+            
+            if user_input.lower() == 'exit':
+                break
+            elif user_input.lower() == 'help':
+                print("\nAvailable commands:")
+                print("  help          - Show this help message")
+                print("  clear         - Clear conversation history")
+                print("  stats         - Show learning statistics")
+                print("  suggest       - Get code suggestions for current file")
+                print("  explain       - Explain the current code")
+                print("  test          - Generate test cases")
+                print("  exit          - Exit interactive mode")
+                print("  CODE:         - Share code context (format: CODE:filename.py\\ncode)")
+                continue
+            
+            response = ai_runner.ask(user_input)
+            print("\nAI:", response.strip(), "\n")
+            
+        except KeyboardInterrupt:
+            print("\nExiting interactive mode...")
+            break
+        except Exception as e:
+            print(f"Error: {e}")
+
 def main():
     logger = setup_logging()
     
@@ -22,6 +55,8 @@ def main():
                        help="Name of the model to use")
     parser.add_argument("--no-gpu", action="store_true", 
                        help="Disable GPU acceleration")
+    parser.add_argument("--no-interactive", action="store_true",
+                       help="Disable interactive mode")
     
     args = parser.parse_args()
 
@@ -43,14 +78,27 @@ def main():
         logger.error(f"Failed to initialize AI assistant: {e}")
         return
 
-    # Start file monitoring
-    logger.info(f"Starting file monitoring on: {watch_path}")
-    try:
-        start_monitoring(watch_path)
-    except KeyboardInterrupt:
-        logger.info("Shutting down Sentient Debugger...")
-    except Exception as e:
-        logger.error(f"Error during monitoring: {e}")
+    # Start monitoring in a separate thread
+    monitor_thread = threading.Thread(
+        target=start_monitoring,
+        args=(watch_path,),
+        daemon=True
+    )
+    monitor_thread.start()
+    logger.info(f"File monitoring started on: {watch_path}")
+
+    # Start interactive mode unless disabled
+    if not args.no_interactive:
+        try:
+            start_interactive_mode(ai_runner)
+        except Exception as e:
+            logger.error(f"Interactive mode error: {e}")
+    else:
+        # Keep main thread alive
+        try:
+            monitor_thread.join()
+        except KeyboardInterrupt:
+            logger.info("Shutting down Sentient Debugger...")
 
 if __name__ == "__main__":
     main()
