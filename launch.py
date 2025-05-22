@@ -35,6 +35,16 @@ def start_interactive_mode(ai_runner):
                 print("  test          - Generate test cases")
                 print("  exit          - Exit interactive mode")
                 print("  CODE:         - Share code context (format: CODE:filename.py\\ncode)")
+                print("  metrics       - Show code quality metrics")
+                print("  optimize      - Get optimization suggestions")
+                print("  refactor      - Get refactoring suggestions")
+                print("  patterns      - Show detected code patterns")
+                print("  complexity    - Show code complexity metrics")
+                print("  readability   - Show code readability metrics")
+                print("  maintainability - Show code maintainability metrics")
+                print("  security      - Show code security metrics")
+                print("  performance   - Show code performance metrics")
+                print("  bugs          - Show code bug metrics")
                 continue
             
             response = ai_runner.ask(user_input)
