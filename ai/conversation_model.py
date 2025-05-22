@@ -84,7 +84,7 @@ class ConversationModel:
             'context': self.context['current_task']
         }
     
-    def _get_contextual_response(self, intent: Dict) -> str:
+    def _get_contextual_response(self) -> str:
         """Get context-aware response"""
         if not self.context['current_task']:
             return "What would you like to work on? I can help with frontend, backend, or any other aspect of your project."
