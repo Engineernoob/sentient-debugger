@@ -64,8 +64,7 @@ def main():
     try:
         logger.info("Initializing AI assistant...")
         ai_runner = LocalModelRunner(
-            model_name=args.model,
-            n_gpu_layers=0 if args.no_gpu else 33
+            model_name=args.model
         )
         logger.info("AI assistant initialized successfully")
     except Exception as e:
